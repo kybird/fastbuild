@@ -236,7 +236,8 @@ ObjectNode::~ObjectNode()
     const bool useCache = ShouldUseCache();
     const bool useDist = m_CompilerFlags.IsDistributable() && m_AllowDistribution && FBuild::Get().GetOptions().m_AllowDistributed;
     const bool useSimpleDist = GetCompiler()->SimpleDistributionMode();
-    bool usePreProcessor = !useSimpleDist && ( useCache || useDist || IsGCC() || IsSNC() || IsClang() || IsClangCl() || IsCodeWarriorWii() || IsGreenHillsWiiU() || IsVBCC() || IsOrbisWavePSSLC() );
+    //bool usePreProcessor = !useSimpleDist && ( useCache || useDist || IsGCC() || IsSNC() || IsClang() || IsClangCl() || IsCodeWarriorWii() || IsGreenHillsWiiU() || IsVBCC() || IsOrbisWavePSSLC() );
+    bool usePreProcessor = !useSimpleDist && ( useCache || useDist || IsGCC() || IsSNC() || ( IsClangCl() && useDist ) || IsCodeWarriorWii() || IsGreenHillsWiiU() || IsVBCC() || IsOrbisWavePSSLC()  );
     if ( GetDedicatedPreprocessor() )
     {
         usePreProcessor = true;
@@ -543,8 +544,12 @@ Node::BuildResult ObjectNode::DoBuildWithPreProcessor2( Job * job, bool useDeopt
     bool usePreProcessedOutput = true;
     if ( job->IsLocal() )
     {
-        if ( IsClang() ||
-             IsClangCl() ||
+        if ( IsClang()) 
+        {
+            usePreProcessedOutput = false;
+        } 
+
+        if (            
              IsGCC() ||
              IsSNC() )
         {
@@ -1780,6 +1785,18 @@ bool ObjectNode::BuildArgs( const Job * job, Args & fullArgs, Pass pass, bool us
             continue;
         }
 
+        // Remove dependency file generation so it's only performed on local system
+        bool bOk = CompilerDriverBase::StripToken( "-MD", token );
+        if ( bOk  )
+        {
+            continue; // skip this token in both cases
+        }
+        bOk = CompilerDriverBase::StripTokenWithArg( "-MF", token, i );
+        if ( bOk)
+        {
+            continue; // skip this token in both cases
+        }
+
         // Handle compiling preprocessed output args adjustment
         if ( ( pass == PASS_COMPILE_PREPROCESSED ) && driver->ProcessArg_CompilePreprocessed( token, i, nextToken, job->IsLocal(), fullArgs ) )
         {
@@ -1796,6 +1813,45 @@ bool ObjectNode::BuildArgs( const Job * job, Args & fullArgs, Pass pass, bool us
         if ( driver->ProcessArg_BuildTimeSubstitution( token, i, fullArgs ) )
         {
             continue;
+        }
+
+        {
+            // %5 -> FirstExtraFile
+            const char * found = token.Find( "%5" );
+            if ( found )
+            {
+                AStackString<> extraFile;
+                if ( job->IsLocal() == false )
+                {
+                    job->GetToolManifest()->GetRemoteFilePath( 1, extraFile );
+                }
+
+                fullArgs += AStackString<>( token.Get(), found );
+                fullArgs += job->IsLocal() ? GetCompiler()->GetExtraFile( 0 ) : extraFile;
+                fullArgs += AStackString<>( found + 2, token.GetEnd() );
+                fullArgs.AddDelimiter();
+                continue;
+            }
+
+            // %CLFilterDependenciesOutput -> file name Unreal Engine's cl-filter -dependencies param
+            // MSVC's /showIncludes option doesn't output anything when compiling a preprocessed file,
+            // so in that case we change the file name so that it doesn't override the file generated
+            // during preprocessing pass.
+            {
+                const char *found2 = token.Find( "%CLFilterDependenciesOutput" );
+                if ( found2 )
+                {
+                    AString nameWithoutExtension( m_Name );
+                    PathUtils::StripFileExtension( nameWithoutExtension );
+
+                    fullArgs += AStackString<>( token.Get(), found );
+                    fullArgs += nameWithoutExtension;
+                    fullArgs += pass == PASS_COMPILE_PREPROCESSED ? ".empty" : ".txt";
+                    fullArgs += AStackString<>( found + 27, token.GetEnd() );
+                    fullArgs.AddDelimiter();
+                    continue;
+                }
+            }
         }
 
         // untouched token

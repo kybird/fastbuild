@@ -43,6 +43,7 @@
     }
 #endif
 
+
 // IMessage
 //------------------------------------------------------------------------------
 Protocol::IMessage::IMessage( Protocol::MessageType msgType, uint8_t msgSize, bool hasPayload )

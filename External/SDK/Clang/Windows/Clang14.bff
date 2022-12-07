@@ -13,9 +13,9 @@
     .Clang14_BasePath   = '$_CURRENT_BFF_DIR_$/14.0.6'
     .Clang14_Version    = '14.0.6'
 #else
-    #if file_exists( "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/LLVM/x64/bin/clang-cl.exe" )
+    #if file_exists( "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/x64/bin/clang-cl.exe" )
         // Installed with VS2019
-        .Clang14_BasePath = 'C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/LLVM/x64'
+        .Clang14_BasePath = 'D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/x64'
         .Clang14_Version    = '14.x.x'
     #else
         #if file_exists( "C:/Program Files/LLVM/bin/clang-cl.exe" )
@@ -48,7 +48,7 @@ Compiler( 'Compiler-Clang14' )
                                         '$Root$/bin/vcruntime140.dll'
                                         '$Root$/bin/vcruntime140_1.dll'
                                       }
-    .Executable                     = '$Root$\bin\clang-cl.exe'
+    .Executable                     = '$Root$/bin/clang-cl.exe'
 
     // Allow tests to activate some experimental behavior
     #if ENABLE_RELATIVE_PATHS
@@ -68,7 +68,7 @@ Compiler( 'Compiler-Clang14-NonCL' )
                                         '$Root$/bin/msvcp140.dll'
                                         '$Root$/bin/vcruntime140.dll'
                                       }
-    .Executable                     = '$Root$\bin\clang.exe'
+    .Executable                     = '$Root$/bin/clang.exe'
 
     // Allow tests to activate some experimental behavior
     #if ENABLE_RELATIVE_PATHS
@@ -91,11 +91,11 @@ Compiler( 'Compiler-Clang14-NonCL' )
     .Platform                       = 'x64Clang'
 
     // Librarian
-    .Librarian                      = '$Clang14_BasePath$\bin\llvm-ar.exe'
+    .Librarian                      = '$Clang14_BasePath$/bin/llvm-ar.exe'
     .LibrarianOptions               = '/c echo %1 > %2' // 'rc "%2" "%1"' // NOTE: output must come first
 
     // Linker
-    .Linker                         = '$Clang14_BasePath$\bin\lld-link.exe'
+    .Linker                         = '$Clang14_BasePath$/bin/lld-link.exe'
     .LinkerOptions                  = '/NODEFAULTLIB /WX /NOLOGO /INCREMENTAL:NO /OUT:"%2" "%1" /DEBUG'
                                     + .VSLibPaths
 
