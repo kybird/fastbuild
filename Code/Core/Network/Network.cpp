@@ -1,4 +1,4 @@
-// Network
+﻿// Network
 //------------------------------------------------------------------------------
 
 // Includes
@@ -22,6 +22,7 @@
     #include <string.h>
     #include <unistd.h>
 #endif
+
 
 // GetHostName
 //------------------------------------------------------------------------------
@@ -195,14 +196,24 @@
 
             // Try to resolve
             struct addrinfo * result( nullptr );
-            if ( ::getaddrinfo( hostName.Get(), nullptr, &hints, &result ) == 0 )
+            if ( ::getaddrinfo( hostName.Get(), nullptr, &hints, &result )  == 0 )
             {
-                if ( result )
-                {
+                char ipstr[INET_ADDRSTRLEN];
+                for (auto p = result; p != nullptr; p = p->ai_next) {
                     PRAGMA_DISABLE_PUSH_CLANG_WINDOWS( "-Wcast-align" ) // cast from 'struct sockaddr *' to 'sockaddr_in *' increases required alignment from 2 to 4
-                    const sockaddr_in * sockaddr_ipv4 = (sockaddr_in *)result->ai_addr;
+                    const sockaddr_in * sockaddr_ipv4 = (sockaddr_in *)p->ai_addr;
                     PRAGMA_DISABLE_POP_CLANG_WINDOWS // -Wcast-align
-                    ip = sockaddr_ipv4->sin_addr.s_addr;
+
+                    void *addr = (void*)&(sockaddr_ipv4->sin_addr);
+                    inet_ntop(AF_INET, addr, ipstr, sizeof ipstr);
+                    
+                    // IP 주소의 첫 번째 바이트가 192인지 확인합니다.
+                    if (ipstr[0] == '1' && ipstr[1] == '9' && ipstr[2] == '2' && ipstr[3] == '.' &&
+                        ipstr[4] == '1' && ipstr[5] == '6' && ipstr[6] == '8' && ipstr[7] == '.' &&
+                        ipstr[8] == '8' && ipstr[9] == '8' && ipstr[10] == '.') {
+                        ip = sockaddr_ipv4->sin_addr.s_addr;
+                        break;
+                    }
                 }
             }
             ::freeaddrinfo( result );
